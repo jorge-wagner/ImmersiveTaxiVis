@@ -1,6 +1,6 @@
 # *Immersive TaxiVis*
 
-This repository is a supplementary material to the research paper "***Reimagining TaxiVis through an Immersive Space-Time Cube metaphor and reflecting on potential benefits of Immersive Analytics for urban data exploration***", to be presented at the [IEEE VR 2024](https://ieeevr.org/2024/) conference by [Jorge Wagner](https://jorgewagner.com) (UFRGS), [Claudio Silva](https://ctsilva.github.io) (NYU), [Wolfgang Stuerzlinger](https://vvise.iat.sfu.ca/people/wolfgang-stuerzlinger) (SFU), and [Luciana Nedel](https://www.inf.ufrgs.br/~nedel/) (UFRGS). A preprint for the full publication is available [here](arxiv.com), and our supplementary video [here](https://www.youtube.com/watch?v=doBPhUHEyXo).
+This repository is a supplementary material to the research paper "***Reimagining TaxiVis through an Immersive Space-Time Cube metaphor and reflecting on potential benefits of Immersive Analytics for urban data exploration***", to be presented at the [IEEE VR 2024](https://ieeevr.org/2024/) conference by [Jorge Wagner](https://jorgewagner.com) (UFRGS), [Claudio Silva](https://ctsilva.github.io) (NYU), [Wolfgang Stuerzlinger](https://vvise.iat.sfu.ca/people/wolfgang-stuerzlinger) (SFU), and [Luciana Nedel](https://www.inf.ufrgs.br/~nedel/) (UFRGS). A preprint for the full publication is available [here](arxiv.com), and our supplementary video [here](https://www.youtube.com/watch?v=5nQFVHqUBaU).
 
 ![Teaser image of some of the features of Immersive TaxiVis: bi-manual brushing, Space-Time Cube view, 3D city models, query prisms, and embedded time series plots](https://static.wixstatic.com/media/3cc1d5_a9a672a32a784dbcabfac05696582f4c~mv2.png)
 
@@ -120,7 +120,7 @@ The *RoomScenario* background prefab belongs to the Oculus Integration Package. 
 
 *Wolfgang Stuerzlinger* acknowledges support from NSERC. 
 
-*Luciana Nedel* also acknowledges support from CNPq. This study was financed in part by the Coordenação de Aperfeiçoamento de Pessoal de Nível Superior - Brasil (CAPES) - Finance Code 001.
+*Luciana Nedel* also acknowledges support from CNPq (311259/2022-7, 421962/2023-2). This study was financed in part by the Coordenação de Aperfeiçoamento de Pessoal de Nível Superior - Brasil (CAPES) - Finance Code 001.
 
 ## <a id="cite"></a> Citation
 
