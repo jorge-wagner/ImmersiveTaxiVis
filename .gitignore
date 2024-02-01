@@ -70,3 +70,11 @@ crashlytics-build.properties
 # Temporary auto-generated Android Assets
 /[Aa]ssets/[Ss]treamingAssets/aa.meta
 /[Aa]ssets/[Ss]treamingAssets/aa/*
+
+# Never upload your API keys
+/[Aa]ssets/[Rr]esources/MapSessionConfig.txt
+/[Aa]ssets/[Rr]esources/GoogleSessionConfig.txt
+/[Aa]ssets/[Rr]esources/MapSessionConfig.txt.meta
+/[Aa]ssets/[Rr]esources/GoogleSessionConfig.txt.meta
+
+.DS_Store
