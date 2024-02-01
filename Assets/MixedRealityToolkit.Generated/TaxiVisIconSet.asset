@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cb41c8335e2ca96449f3991db5fa5702, type: 3}
+  m_Name: TaxiVisIconSet
+  m_EditorClassIdentifier: 
+  quadIcons:
+  - {fileID: 2800000, guid: b9f23287a4a9648dd8d378ce18b023cf, type: 3}
+  - {fileID: 2800000, guid: 20b89441a659e42a084fcf414959c1d0, type: 3}
+  - {fileID: 2800000, guid: bdb62a8bfb43d4ad2b07ed89fa6b7072, type: 3}
+  - {fileID: 2800000, guid: 56a7f29c9d6d54fdf84bfe2c1124fa16, type: 3}
+  - {fileID: 2800000, guid: cc7aac7e473758f44912d1cfa38ab1e1, type: 3}
+  - {fileID: 2800000, guid: 31bd93b0fdec3cc418550e574cb039d3, type: 3}
+  - {fileID: 2800000, guid: b7686390b2b907a4ea2884fa3b7d3d90, type: 3}
+  spriteIcons: []
+  charIconFont: {fileID: 0}
+  charIcons:
+  - Name: AppBarAdjust
+    Character: 60370
+  - Name: AppBarClose
+    Character: 59153
+  - Name: AppBarDone
+    Character: 59643
+  - Name: AppBarHide
+    Character: 59244
+  - Name: AppBarShow
+    Character: 59154
+  - Name: AppBarHome
+    Character: 60175

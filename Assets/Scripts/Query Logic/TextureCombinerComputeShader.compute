@@ -1,0 +1,43 @@
+﻿// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+#include "UnityCG.cginc"
+
+RWTexture2D<float4> Result;
+
+RWTexture2D<float4> T1;
+RWTexture2D<float4> T2;
+
+float _size;
+bool useAnd;
+
+
+[numthreads(32, 32, 1)]
+void CSMain(uint3 id : SV_DispatchThreadID)
+{
+
+	if (useAnd) 
+	{
+		if (T1[id.xy].x == 1.0 && T2[id.xy].x == 1.0)
+		{
+			Result[id.xy] = float4(1.0, 0.0, 0.0, 1.0);
+		}
+		else
+		{
+			Result[id.xy] = float4(0.0, 0.0, 0.0, 1.0);
+		}
+	}
+	else 
+	{
+		if (T1[id.xy].x == 1.0 || T2[id.xy].x == 1.0)
+		{
+			Result[id.xy] = float4(1.0, 0.0, 0.0, 1.0);
+		}
+		else
+		{
+			Result[id.xy] = float4(0.0, 0.0, 0.0, 1.0);
+		}
+	}
+}
+
+
+

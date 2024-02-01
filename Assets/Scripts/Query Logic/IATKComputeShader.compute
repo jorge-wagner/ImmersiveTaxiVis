@@ -1,0 +1,385 @@
+﻿// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+//#pragma kernel ComputeBrushedIndicesArray
+#include "UnityCG.cginc"
+
+// Create a RenderTexture with enableRandomWrite flag and set it
+// with cs.SetTexture
+RWTexture2D<float4> Result;
+float4x4 W_Matrix;
+float rand;
+
+float _size;
+
+//*******************
+// RANGE FILTERING
+//*******************
+
+float _MinX;
+float _MaxX;
+float _MinY;
+float _MaxY;
+float _MinZ;
+float _MaxZ;
+
+// ********************
+// Normalisation ranges
+// ********************
+
+float _MinNormX;
+float _MaxNormX;
+float _MinNormY;
+float _MaxNormY;
+float _MinNormZ;
+float _MaxNormZ;
+
+float3 refPos;
+float3 refScale;
+float4 prismPolyVertices[300];
+float numpolyvertices;
+float prismMinY;
+float prismMaxY;
+
+float cylRadius;
+//float3 pointer2;
+
+float width;
+float height;
+float depth;
+
+float RadiusSphere;
+
+int BrushShape;
+int BrushMode;
+int BrushType;
+
+bool HasFreeBrushReset;
+
+RWStructuredBuffer<float3> dataBuffer;
+//StructuredBuffer<float> filteredIndicesBuffer;
+//RWStructuredBuffer<int> brushedIndicesBuffer;
+
+// Brush Circle
+bool Brush2DInCircle(float3 center, float radius, float4 testPoint)
+{
+	float4 projectedCenter = mul(W_Matrix, float4(center, 1.0));
+
+	return sqrt(pow(testPoint.x - projectedCenter.x, 2) + pow(testPoint.y - projectedCenter.y, 2)) < radius;
+}
+
+// Brush Sphere
+bool BrushSphere(float3 center, float radius, float3 testPoint)
+{
+	float3 displacementToCenter = testPoint - center;
+	float radiusSqr = radius * radius;
+	bool intersects = dot(displacementToCenter, displacementToCenter) < radiusSqr;
+
+	return intersects;
+}
+
+/*bool BrushCube(float3 TFL, float3 BBR, float3 testPoint)
+{
+	return (testPoint.x >= TFL.x && testPoint.x <= BBR.x
+		&&  testPoint.y <= TFL.y && testPoint.y >= BBR.y
+		&&  testPoint.z >= TFL.z && testPoint.z <= BBR.z);
+}*/
+
+bool BrushCube(float3 center, float3 sides, float3 testPoint)
+{
+	return (testPoint.x >= center.x - sides.x/2 && testPoint.x <= center.x + sides.x/2
+		&&  testPoint.y >= center.y - sides.y/2 && testPoint.y <= center.y + sides.y/2
+		&&  testPoint.z >= center.z - sides.z/2 && testPoint.z <= center.z + sides.z/2);
+}
+
+/*
+bool BrushCylinder(float3 center, float3 sides, float3 testPoint)
+{
+	//return ((testPoint.y >= center.y - sides.y/2 && testPoint.y <= center.y + sides.y/2)
+	return ((testPoint.y >= center.y - sides.y && testPoint.y <= center.y + sides.y)
+     && (sqrt(pow(testPoint.x - center.x, 2) + pow(testPoint.z - center.z, 2)) <= sides.x/2));
+}*/
+
+
+
+
+
+bool BrushCylinder(float3 center, float minY, float maxY, float radius, float3 testPoint)
+{
+	//return ((testPoint.y >= center.y - sides.y/2 && testPoint.y <= center.y + sides.y/2)
+	return ((testPoint.y >= minY && testPoint.y <= maxY)
+	//	&& (sqrt(pow(testPoint.x - center.x, 2) + pow(testPoint.z - center.z, 2)) <= radius));
+	     && (sqrt((testPoint.x - center.x)*(testPoint.x - center.x) + (testPoint.z - center.z)*(testPoint.z - center.z)) < radius));
+
+//	float4 projectedCenter = mul(W_Matrix, float4(center, 1.0));
+
+//	if (testPoint.y < minY || testPoint.y > maxY)
+//		return false;
+
+//	return sqrt(pow(testPoint.x - projectedCenter.x, 2) + pow(testPoint.z - projectedCenter.z, 2)) < radius;
+
+
+}
+
+/*
+bool BrushCylinder(float3 center, float minY, float maxY, float radius, float3 testPoint)
+//float CylTest_CapsFirst(const Vec3 & pt1, const Vec3 & pt2, float lengthsq, float radius_sq, const Vec3 & testpt)
+{
+	float dx, dy, dz;	// vector d  from line segment point 1 to point 2
+	float pdx, pdy, pdz;	// vector pd from point 1 to test point
+	float dot, dsq;
+	float lengthsq = (maxY - minY)*(maxY - minY);
+	float radius_sq = radius * radius;
+
+	dx = 0;	// translate so pt1 is origin.  Make vector from
+	dy = maxY - minY;     // pt1 to pt2.  Need for this is easily eliminated
+	dz = 0;
+
+	pdx = testPoint.x - center.x;		// vector from pt1 to test point.
+	pdy = testPoint.y - minY;
+	pdz = testPoint.z - center.z;
+
+	// Dot the d and pd vectors to see if point lies behind the 
+	// cylinder cap at pt1.x, pt1.y, pt1.z
+
+	dot = pdx * dx + pdy * dy + pdz * dz;
+
+	// If dot is less than zero the point is behind the pt1 cap.
+	// If greater than the cylinder axis line segment length squared
+	// then the point is outside the other end cap at pt2.
+
+	if (dot < 0.0f || dot > lengthsq)
+	{
+		return false;
+	}
+	else
+	{
+		// Point lies within the parallel caps, so find
+		// distance squared from point to line, using the fact that sin^2 + cos^2 = 1
+		// the dot = cos() * |d||pd|, and cross*cross = sin^2 * |d|^2 * |pd|^2
+		// Carefull: '*' means mult for scalars and dotproduct for vectors
+		// In short, where dist is pt distance to cyl axis: 
+		// dist = sin( pd to d ) * |pd|
+		// distsq = dsq = (1 - cos^2( pd to d)) * |pd|^2
+		// dsq = ( 1 - (pd * d)^2 / (|pd|^2 * |d|^2) ) * |pd|^2
+		// dsq = pd * pd - dot * dot / lengthsq
+		//  where lengthsq is d*d or |d|^2 that is passed into this function 
+
+		// distance squared to the cylinder axis:
+
+		dsq = (pdx*pdx + pdy * pdy + pdz * pdz) - dot * dot / lengthsq;
+
+		if (dsq > radius_sq)
+		{
+			return false;
+		}
+		else
+		{
+			return true;	
+		}
+	}
+}*/
+
+
+
+
+
+bool BrushPrism(float4 polygon[300], float numVertices, float minY, float maxY, float3 p)
+{
+	if(p.y < minY || p.y > maxY)
+		return false;
+		/*
+
+		//https://stackoverflow.com/a/16391873
+
+	float minX = polygon[ 0 ].x;
+    float maxX = polygon[ 0 ].x;
+    float minZ = polygon[ 0 ].z;
+    float maxZ = polygon[ 0 ].z;
+    for ( int i = 1 ; i < numVertices ; i++ )
+    {
+        float4 q = polygon[ i ];
+        minX = Math.Min( q.x, minX );
+        maxX = Math.Max( q.x, maxX );
+        minZ = Math.Min( q.z, minZ );
+        maxZ = Math.Max( q.z, maxZ );
+    }
+
+    if ( p.X < minX || p.X > maxX || p.z < minZ || p.z > maxZ )
+    {
+        return false;
+    }*/
+
+    // https://wrf.ecse.rpi.edu/Research/Short_Notes/pnpoly.html
+    bool inside = false;
+    for ( int i = 0, j = numVertices - 1 ; i < numVertices ; j = i++ )
+    {
+        if ( ( polygon[ i ].z > p.z ) != ( polygon[ j ].z > p.z ) &&
+             p.x < ( polygon[ j ].x - polygon[ i ].x ) * ( p.z - polygon[ i ].z ) / ( polygon[ j ].z - polygon[ i ].z ) + polygon[ i ].x )
+        {
+            inside = !inside;
+        }
+    }
+
+    return inside;
+
+}
+
+
+
+bool BrushSquare(float3 tl, float3 tr, float3 bl, float3 br, float4 testPoint)
+{
+	float4 tlp = mul(W_Matrix, float4(tl, 1.0));
+	float4 trp = mul(W_Matrix, float4(tr, 1.0));
+	float4 blp = mul(W_Matrix, float4(bl, 1.0));
+	float4 brp = mul(W_Matrix, float4(br, 1.0));
+
+	return (testPoint.x >= tlp.x && testPoint.x <= trp.x
+		&&  testPoint.y <= tlp.y && testPoint.x >= blp.y);
+}
+
+// Selects the correct brush type. 1 : cube, 2 : square
+bool Brush(int brushShape, float3 filteredPosition)
+{
+	switch (brushShape)
+	{
+		// Brush sphere
+		case 0:
+			return BrushSphere(float3(refPos.x, refPos.y, refPos.z), RadiusSphere, filteredPosition);
+
+		// Brush cube
+		case 1:
+			//float3 TFL;
+			//float3 BBR;
+
+			/*TFL.x = min(refPos.x, pointer2.x);
+			BBR.x = max(refPos.x, pointer2.x);
+			TFL.y = max(refPos.y, pointer2.y);
+			BBR.y = min(refPos.y, pointer2.y);
+			TFL.z = min(refPos.z, pointer2.z);
+			BBR.z = max(refPos.z, pointer2.z);*/
+
+			//return BrushCube(TFL, BBR, filteredPosition);
+			return BrushCube(refPos, refScale, filteredPosition);
+
+
+		// Brush square
+		// case 2:
+			// retun BrushSquare(refPosx, refPosy,pointer2x,pointer2y,filteredPosition);
+		// Brush cylinder
+		case 2:
+			//return BrushCylinder(refPos, refScale, filteredPosition);
+			return BrushCylinder(refPos, prismMinY, prismMaxY, refScale.z / 2.0, filteredPosition);
+
+
+		case 3:
+			return BrushPrism(prismPolyVertices, numpolyvertices, prismMinY, prismMaxY, filteredPosition);
+
+		default:
+			return false;
+	}
+}
+
+// TODO
+// brush sphere
+//brush rectangle
+//brush cube
+//texturebrush
+// brush histogram
+
+//*********************************
+// helper functions
+//*********************************
+
+// Handles situations where the upper range value is less than the lower range value, specifically when handling negative ranges
+bool IsBetweenRanges(float value, float lower, float upper)
+{
+	if (lower <= upper)
+	{
+		return (lower <= value && value <= upper);
+	}
+	else
+	{
+		return (upper <= value && value <= lower);
+	}
+}
+
+float NormaliseValue(float value, float i0, float i1, float j0, float j1)
+{
+	float L = (j0 - j1) / (i0 - i1);
+	return (j0 - (L * i0) + (L * value));
+}
+
+[numthreads(32, 32, 1)]
+void CSMain(uint3 id : SV_DispatchThreadID)
+{
+	int idx = id.x + id.y * _size;
+
+	// Ignore indices that are filtered
+	///if (!filteredIndicesBuffer[idx])
+	///{
+		float3 filteredPosition = float3(
+			NormaliseValue(dataBuffer[idx].x, _MinNormX, _MaxNormX, 0, width),
+			NormaliseValue(dataBuffer[idx].y, _MinNormY, _MaxNormY, 0, height),
+			NormaliseValue(dataBuffer[idx].z, _MinNormZ, _MaxNormZ, 0, depth));
+
+		///if (IsBetweenRanges(filteredPosition.x, _MinX, _MaxX * width) &&
+		///	IsBetweenRanges(filteredPosition.y, _MinY, _MaxY * height) &&
+		///	IsBetweenRanges(filteredPosition.z, _MinZ, _MaxZ * depth)
+		///)
+		///{
+			if (Brush(BrushShape, filteredPosition))
+			{
+				switch (BrushType) {
+					// Free selection
+					case 0:
+					// Additive selection
+					case 1:
+						if(BrushMode == 0) // brush
+							Result[id.xy] = float4(1.0, 0.0, 0.0, 1.0);  // brushed
+						if(BrushMode == 1) // select
+							Result[id.xy] = float4(1.0, 0.0, 0.0, 1.0);  // selected
+						//Result[id.xy] = float4(0.0, 1.0, 0.0, 1.0);  // selected
+																	 //dataBuffer[idx].w = 1.0f;
+						//filteredIndicesBuffer[idx] = 1.0;
+						break;
+
+					// Subtractive selection
+					case 2:
+					default:
+						Result[id.xy] = float4(0.0, 0.0, 0.0, 1.0);  // not brushed, not selected
+						//dataBuffer[idx].w = 0.0f
+						break;
+				}
+			}
+			// Free selection un-brushes points
+			else if (BrushType == 0 && !HasFreeBrushReset)
+			{
+				Result[id.xy] = float4(0.0, 0.0, 0.0, 1.0);  // not brushed, not selected
+				//dataBuffer[idx].w = 0.0f
+
+			}
+		///}
+		///else
+		///{
+			//Result[id.xy] = float4(0.0, 0.0, 0.0, 1.0);  // not brushed, not selected, because out of area 
+			//dataBuffer[idx].w = 0.0f
+
+		///}
+	///}
+}
+
+/*[numthreads(32, 1, 1)]
+void ComputeBrushedIndicesArray(uint3 id : SV_DispatchThreadID)
+{
+	int x = id.x % _size;
+	int y = floor(id.x / _size);
+	float2 pos = float2(x, y);
+
+	if (Result[pos].x > 0.0)
+		brushedIndicesBuffer[id.x] = 1;
+	else
+		brushedIndicesBuffer[id.x] = -1;
+}*/
+
+
+
